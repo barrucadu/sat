@@ -6,12 +6,8 @@ use crate::cnf::*;
 impl Literal {
     /// Get the numeric ID of a literal.
     fn get_id(&self) -> isize {
-        let Literal(atom) = *self;
-        if atom < 0 {
-            atom * -1
-        } else {
-            atom
-        }
+        let Literal(atom) = self;
+        atom.abs()
     }
 
     /// A literal is true in a model if it's a member of the set.
