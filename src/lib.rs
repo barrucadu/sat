@@ -2,6 +2,7 @@
 //! DPLL Modulo Theories"
 
 pub mod cnf;
+pub mod dimacs;
 pub mod dpll;
 
 use crate::cnf::{Formula, Literal};
