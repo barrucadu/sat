@@ -1,36 +1,44 @@
 //! A basic SAT solver based on the paper "Abstract DPLL and Abstract
 //! DPLL Modulo Theories"
 
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 pub const HELLO_WORLD: &str = "Hello, world!";
 
-/// An atom is a propositional symbol, represented here by integers.
+/// A literal is either an atom (a positive number) or the negation of
+/// that atom (a negative number).
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Eq, Ord)]
-struct Atom(usize);
-
-/// A literal is either an atom or the negation of that atom.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Eq, Ord)]
-struct Literal {
-    atom: Atom,
-    is_negative: bool,
-}
+struct Literal(isize);
 
 impl Literal {
     /// Construct a positive literal from an atom.
-    pub fn new(atom: Atom) -> Literal {
-        Literal {
-            atom: atom,
-            is_negative: false,
+    pub fn new(atom: isize) -> Literal {
+        if atom == 0 {
+            panic!("cannot construct a literal numbered zero");
+        }
+        Literal(atom)
+    }
+
+    /// Check if a literal is negated.
+    pub fn is_negated(&self) -> bool {
+        let Literal(atom) = *self;
+        atom < 0
+    }
+
+    /// Get the numeric ID of a literal.
+    pub fn get_id(&self) -> isize {
+        let Literal(atom) = *self;
+        if atom < 0 {
+            atom * -1
+        } else {
+            atom
         }
     }
 
     /// Negate a literal, with double negation cancelling out.
     pub fn negate(&self) -> Literal {
-        Literal {
-            atom: self.atom,
-            is_negative: !self.is_negative,
-        }
+        let Literal(atom) = self;
+        Literal(atom * -1)
     }
 
     /// A literal is true in a model if it's a member of the set.
@@ -49,14 +57,12 @@ impl Literal {
 
 /// A clause is a disjunction of literals.
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
-struct Clause(BTreeSet<Literal>);
+struct Clause(Vec<Literal>);
 
 impl Clause {
-    /// Construct a new clause from a literal.
-    pub fn new(lit: Literal) -> Clause {
-        let mut lits = BTreeSet::new();
-        lits.insert(lit);
-        Clause(lits)
+    /// Construct a new clause from numeric literals.
+    pub fn new(lits: Vec<isize>) -> Clause {
+        Clause(lits.into_iter().map(|i| Literal::new(i)).collect())
     }
 
     /// Add a literal to a clause.  Two literals corresponding to the
@@ -64,7 +70,7 @@ impl Clause {
     /// the same clause.
     pub fn insert_literal(&mut self, lit: Literal) {
         let Clause(lits) = self;
-        lits.insert(lit);
+        lits.push(lit);
     }
 
     /// A clause is true in a model if any of its literals are true in
@@ -92,20 +98,18 @@ impl Clause {
 
 /// A formula is a conjunction of clauses.
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
-struct Formula(BTreeSet<Clause>);
+struct Formula(Vec<Clause>);
 
 impl Formula {
     /// Construct a new formula from a clause.
-    pub fn new(clause: Clause) -> Formula {
-        let mut clauses = BTreeSet::new();
-        clauses.insert(clause);
-        Formula(clauses)
+    pub fn new(clauses: Vec<Clause>) -> Formula {
+        Formula(clauses.clone())
     }
 
     /// Add a clause to a formula.
     pub fn insert_clause(&mut self, clause: Clause) {
         let Formula(clauses) = self;
-        clauses.insert(clause);
+        clauses.push(clause);
     }
 
     /// A formula is true in a model if all of its clauses are true in
@@ -169,16 +173,16 @@ impl Model {
     /// Check if the model is consistent: there exists no literal L
     /// such that both L and L.negate are in the model.
     pub fn is_consistent(&self) -> bool {
-        let mut has_positive = BTreeSet::new();
-        let mut has_negative = BTreeSet::new();
+        let mut has_positive = HashSet::new();
+        let mut has_negative = HashSet::new();
 
         let Model(lits) = self;
 
         for (lit, _) in lits {
-            if lit.is_negative {
-                has_negative.insert(lit.atom);
+            if lit.is_negated() {
+                has_negative.insert(lit.get_id());
             } else {
-                has_positive.insert(lit.atom);
+                has_positive.insert(lit.get_id());
             }
         }
 
@@ -211,8 +215,8 @@ fn do_unit_propagation(model: &mut Model, formula: &Formula) -> bool {
 
             for lit in lits {
                 if lit.is_true_in(model) == None {
-                    let mut lits_without_lit = lits.clone();
-                    lits_without_lit.remove(lit);
+                    let lits_without_lit =
+                        lits.into_iter().filter(|l| *l != lit).map(|l| *l).collect();
 
                     if Clause(lits_without_lit).is_true_in(model) == Some(false) {
                         model.append(*lit, Provenance::UnitPropagation);
@@ -236,7 +240,7 @@ fn do_decision(model: &mut Model, formula: &Formula) -> bool {
             for lit in lits {
                 if lit.is_true_in(model) == None {
                     // make the lit positive
-                    model.append(Literal::new(lit.atom), Provenance::Decision);
+                    model.append(Literal::new(lit.get_id()), Provenance::Decision);
                     return true;
                 }
             }
@@ -285,90 +289,58 @@ mod tests {
 
     #[test]
     fn simple_sat_1() {
-        assert!(sat(mk_formula(&mut vec![mk_clause(&mut vec![1])])));
+        assert!(sat(Formula::new(vec![Clause::new(vec![1])])));
     }
 
     #[test]
     fn simple_sat_2() {
-        assert!(sat(mk_formula(&mut vec![mk_clause(&mut vec![1, 2])])));
+        assert!(sat(Formula::new(vec![Clause::new(vec![1, 2])])));
     }
 
     #[test]
     fn simple_sat_2b() {
-        assert!(sat(mk_formula(&mut vec![
-            mk_clause(&mut vec![-1]),
-            mk_clause(&mut vec![1, -2]),
+        assert!(sat(Formula::new(vec![
+            Clause::new(vec![-1]),
+            Clause::new(vec![1, -2]),
         ])));
     }
 
     #[test]
     fn simple_sat_3() {
-        assert!(sat(mk_formula(&mut vec![
-            mk_clause(&mut vec![1, 2]),
-            mk_clause(&mut vec![3])
+        assert!(sat(Formula::new(vec![
+            Clause::new(vec![1, 2]),
+            Clause::new(vec![3])
         ])));
     }
 
     #[test]
     fn simple_unsat_1() {
-        assert!(!sat(mk_formula(&mut vec![
-            mk_clause(&mut vec![1]),
-            mk_clause(&mut vec![-1])
+        assert!(!sat(Formula::new(vec![
+            Clause::new(vec![1]),
+            Clause::new(vec![-1])
         ])));
     }
 
     #[test]
     fn simple_unsat_2() {
-        assert!(!sat(mk_formula(&mut vec![
-            mk_clause(&mut vec![1]),
-            mk_clause(&mut vec![2]),
-            mk_clause(&mut vec![-1, -2]),
+        assert!(!sat(Formula::new(vec![
+            Clause::new(vec![1]),
+            Clause::new(vec![2]),
+            Clause::new(vec![-1, -2]),
         ])));
     }
 
     #[test]
     fn complex_sat_7() {
-        assert!(sat(mk_formula(&mut vec![
-            mk_clause(&mut vec![-3, 4]),
-            mk_clause(&mut vec![-1, -3, -5]),
-            mk_clause(&mut vec![-2, -4, -5]),
-            mk_clause(&mut vec![-2, 3, 5, -6]),
-            mk_clause(&mut vec![-1, 2]),
-            mk_clause(&mut vec![-1, 3, -5, -6]),
-            mk_clause(&mut vec![1, -6]),
-            mk_clause(&mut vec![1, 7]),
+        assert!(sat(Formula::new(vec![
+            Clause::new(vec![-3, 4]),
+            Clause::new(vec![-1, -3, -5]),
+            Clause::new(vec![-2, -4, -5]),
+            Clause::new(vec![-2, 3, 5, -6]),
+            Clause::new(vec![-1, 2]),
+            Clause::new(vec![-1, 3, -5, -6]),
+            Clause::new(vec![1, -6]),
+            Clause::new(vec![1, 7]),
         ])));
-    }
-
-    fn mk_lit(atom: isize) -> Literal {
-        if atom < 0 {
-            Literal::new(Atom((atom * -1) as usize)).negate()
-        } else {
-            Literal::new(Atom(atom as usize))
-        }
-    }
-
-    fn mk_clause(lits: &mut Vec<isize>) -> Clause {
-        if let Some(a) = lits.pop() {
-            let mut clause = Clause::new(mk_lit(a));
-            while let Some(b) = lits.pop() {
-                clause.insert_literal(mk_lit(b));
-            }
-            clause
-        } else {
-            panic!("tried to construct empty clause")
-        }
-    }
-
-    fn mk_formula(clauses: &mut Vec<Clause>) -> Formula {
-        if let Some(a) = clauses.pop() {
-            let mut formula = Formula::new(a);
-            while let Some(b) = clauses.pop() {
-                formula.insert_clause(b);
-            }
-            formula
-        } else {
-            panic!("tried to construct empty formula")
-        }
     }
 }
