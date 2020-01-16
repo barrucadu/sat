@@ -29,8 +29,9 @@ pub fn smt_assignment<T: Theory>(theory: T, formula: Formula) -> Option<Vec<Lite
 
 #[cfg(test)]
 mod tests {
-    use super::sat;
+    use super::*;
     use crate::cnf::*;
+    use crate::smt::euf::*;
 
     #[test]
     fn simple_sat_1() {
@@ -87,5 +88,113 @@ mod tests {
             Clause::new(vec![1, -6]),
             Clause::new(vec![1, 7]),
         ])));
+    }
+
+    #[test]
+    fn euf_unsat_atoms() {
+        let formula = Formula::new(vec![
+            Clause::new(vec![1]),
+            Clause::new(vec![2]),
+            Clause::new(vec![3]),
+            Clause::new(vec![-4]),
+        ]);
+        let euf = EUF::new(vec![
+            EUFLiteral::new(
+                EUFTerm::ap(1, vec![EUFTerm::atom(1), EUFTerm::atom(2)]),
+                EUFTerm::atom(1),
+            ),
+            EUFLiteral::new(
+                EUFTerm::ap(1, vec![EUFTerm::atom(2)]),
+                EUFTerm::ap(2, vec![EUFTerm::atom(1)]),
+            ),
+            EUFLiteral::new(
+                EUFTerm::ap(
+                    1,
+                    vec![
+                        EUFTerm::ap(1, vec![EUFTerm::atom(1), EUFTerm::atom(2)]),
+                        EUFTerm::atom(2),
+                    ],
+                ),
+                EUFTerm::atom(3),
+            ),
+            EUFLiteral::new(EUFTerm::atom(1), EUFTerm::atom(3)),
+        ]);
+
+        assert!(sat(formula.clone()));
+        assert!(!smt(euf, formula));
+    }
+
+    #[test]
+    fn euf_unsat_functions() {
+        let formula = Formula::new(vec![
+            Clause::new(vec![1]),
+            Clause::new(vec![2]),
+            Clause::new(vec![3]),
+            Clause::new(vec![-4]),
+        ]);
+        let euf = EUF::new(vec![
+            EUFLiteral::new(
+                EUFTerm::ap(1, vec![EUFTerm::atom(1), EUFTerm::atom(2)]),
+                EUFTerm::atom(1),
+            ),
+            EUFLiteral::new(
+                EUFTerm::ap(1, vec![EUFTerm::atom(2)]),
+                EUFTerm::ap(2, vec![EUFTerm::atom(1)]),
+            ),
+            EUFLiteral::new(
+                EUFTerm::ap(
+                    1,
+                    vec![
+                        EUFTerm::ap(1, vec![EUFTerm::atom(1), EUFTerm::atom(2)]),
+                        EUFTerm::atom(2),
+                    ],
+                ),
+                EUFTerm::atom(3),
+            ),
+            EUFLiteral::new(
+                EUFTerm::ap(2, vec![EUFTerm::atom(1)]),
+                EUFTerm::ap(2, vec![EUFTerm::atom(3)]),
+            ),
+        ]);
+
+        assert!(sat(formula.clone()));
+        assert!(!smt(euf, formula));
+    }
+
+    #[test]
+    fn euf_sat_functions() {
+        let formula = Formula::new(vec![
+            Clause::new(vec![1]),
+            Clause::new(vec![2]),
+            Clause::new(vec![3]),
+            Clause::new(vec![-4, 4]),
+        ]);
+        let euf = EUF::new(vec![
+            EUFLiteral::new(
+                EUFTerm::ap(1, vec![EUFTerm::atom(1), EUFTerm::atom(2)]),
+                EUFTerm::atom(1),
+            ),
+            EUFLiteral::new(
+                EUFTerm::ap(1, vec![EUFTerm::atom(2)]),
+                EUFTerm::ap(2, vec![EUFTerm::atom(1)]),
+            ),
+            EUFLiteral::new(
+                EUFTerm::ap(
+                    1,
+                    vec![
+                        EUFTerm::ap(1, vec![EUFTerm::atom(1), EUFTerm::atom(2)]),
+                        EUFTerm::atom(2),
+                    ],
+                ),
+                EUFTerm::atom(3),
+            ),
+            EUFLiteral::new(
+                EUFTerm::ap(2, vec![EUFTerm::atom(1)]),
+                EUFTerm::ap(2, vec![EUFTerm::atom(3)]),
+            ),
+        ]);
+
+        assert!(sat(formula.clone()));
+        assert!(smt(euf, formula));
     }
 }
