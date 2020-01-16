@@ -1,5 +1,7 @@
 //! Parser for DIMACS CNF format
 
+use std::fmt;
+
 use crate::cnf::*;
 
 /// Parse a string in DIMACS CNF format.
@@ -78,6 +80,26 @@ pub enum ParseError {
     UnexpectedFormat(String),
     WrongNumberOfVariables { expected: usize, actual: usize },
     WrongNumberOfClauses { expected: usize, actual: usize },
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ParseError::CannotParsePreludeLine(s) => write!(f, "cannot parse prelude line '{}'", s),
+            ParseError::CannotParseClauseLine(s) => write!(f, "cannot parse clause line '{}'", s),
+            ParseError::UnexpectedFormat(s) => write!(f, "unexpected format '{}'", s),
+            ParseError::WrongNumberOfVariables { expected, actual } => write!(
+                f,
+                "wrong number of variables, expected {} but got {}",
+                expected, actual
+            ),
+            ParseError::WrongNumberOfClauses { expected, actual } => write!(
+                f,
+                "wrong number of clauses, expected {} but got {}",
+                expected, actual
+            ),
+        }
+    }
 }
 
 #[cfg(test)]
