@@ -27,6 +27,12 @@ impl Literal {
         let Literal(atom) = self;
         Literal(atom * -1)
     }
+
+    /// Get the numeric ID of a literal.
+    pub fn get_id(&self) -> isize {
+        let Literal(atom) = self;
+        atom.abs()
+    }
 }
 
 impl fmt::Display for Literal {

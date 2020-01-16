@@ -5,12 +5,6 @@ use crate::cnf::*;
 use crate::smt::Theory;
 
 impl Literal {
-    /// Get the numeric ID of a literal.
-    fn get_id(&self) -> isize {
-        let Literal(atom) = self;
-        atom.abs()
-    }
-
     /// A literal is true in a model if it's a member of the set.
     /// This will return 'None' if the model doesn't have an
     /// assignment of truth for the literal or its negation.
