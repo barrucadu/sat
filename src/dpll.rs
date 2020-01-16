@@ -2,6 +2,7 @@
 //! DPLL Modulo Theories"
 
 use crate::cnf::*;
+use crate::smt::Theory;
 
 impl Literal {
     /// Get the numeric ID of a literal.
@@ -78,6 +79,7 @@ pub struct Model(Vec<(Literal, Provenance)>);
 #[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
 enum Provenance {
     UnitPropagation,
+    TheoryPropagation,
     Decision,
     Backjump,
 }
@@ -155,6 +157,31 @@ fn do_unit_propagation(model: &mut Model, formula: &Formula) -> bool {
     false
 }
 
+fn do_theory_propagation<T: Theory>(theory: &T, model: &mut Model, formula: &Formula) -> bool {
+    let Formula(clauses) = formula;
+
+    for clause in clauses {
+        let Clause(lits) = clause;
+        for lit in lits {
+            if lit.is_true_in(model) == None {
+                match theory.decide(model, lit) {
+                    Some(true) => {
+                        model.append(*lit, Provenance::TheoryPropagation);
+                        return true;
+                    }
+                    Some(false) => {
+                        model.append(lit.negate(), Provenance::TheoryPropagation);
+                        return true;
+                    }
+                    None => continue,
+                }
+            }
+        }
+    }
+
+    false
+}
+
 fn do_decision(model: &mut Model, formula: &Formula) -> bool {
     let Formula(clauses) = formula;
 
@@ -176,7 +203,7 @@ fn do_decision(model: &mut Model, formula: &Formula) -> bool {
 }
 
 /// Given a formula, find a model which satisfies it if one exists.
-pub fn dpll(formula: Formula) -> Option<Model> {
+pub fn dpll<T: Theory>(theory: T, formula: Formula) -> Option<Model> {
     let mut model = Model::new();
 
     loop {
@@ -190,6 +217,12 @@ pub fn dpll(formula: Formula) -> Option<Model> {
                 return None;
             }
             None => {
+                // need to eagerly apply constraints required by the
+                // theory, or unit propagation might pick a literal
+                // which the theory would forbid.
+                if do_theory_propagation(&theory, &mut model, &formula) {
+                    continue;
+                }
                 if do_unit_propagation(&mut model, &formula) {
                     continue;
                 }
@@ -197,7 +230,7 @@ pub fn dpll(formula: Formula) -> Option<Model> {
                     continue;
                 }
 
-                panic!("failed to do either unit propagation or decision in an incomplete model");
+                panic!("failed to do either propagation or decision in an incomplete model");
             }
         }
     }

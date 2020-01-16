@@ -4,16 +4,27 @@
 pub mod cnf;
 pub mod dimacs;
 pub mod dpll;
+pub mod smt;
 
 use crate::cnf::{Formula, Literal};
 use crate::dpll::dpll;
+use crate::smt::empty::EmptyTheory;
+use crate::smt::Theory;
 
 pub fn sat(formula: Formula) -> bool {
-    dpll(formula).is_some()
+    smt(EmptyTheory::new(), formula)
 }
 
-pub fn assignment(formula: Formula) -> Option<Vec<Literal>> {
-    dpll(formula).map(|model| model.get_assignments())
+pub fn sat_assignment(formula: Formula) -> Option<Vec<Literal>> {
+    smt_assignment(EmptyTheory::new(), formula)
+}
+
+pub fn smt<T: Theory>(theory: T, formula: Formula) -> bool {
+    dpll(theory, formula).is_some()
+}
+
+pub fn smt_assignment<T: Theory>(theory: T, formula: Formula) -> Option<Vec<Literal>> {
+    dpll(theory, formula).map(|model| model.get_assignments())
 }
 
 #[cfg(test)]

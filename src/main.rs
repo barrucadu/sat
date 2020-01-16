@@ -13,7 +13,7 @@ const EXIT_ERROR: i32 = 254;
 fn main() {
     let formula = read_dimacs_from_stdin();
 
-    if let Some(lits) = sat::assignment(formula) {
+    if let Some(lits) = sat::sat_assignment(formula) {
         for lit in lits {
             println!("{}", lit);
         }
