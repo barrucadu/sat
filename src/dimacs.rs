@@ -134,7 +134,7 @@ mod tests {
                            1 -6 0\n\
                            1 7 0";
 
-        assert_eq!(Ok(formula), from_string(formula_str));
+        assert_eq!(Ok(formula), from_string(formula_str.to_string()));
     }
 
     #[test]
@@ -157,7 +157,7 @@ mod tests {
                            -1 2 0 -1 3 -5\n\
                            -6 0 1 -6 0 1 7 0";
 
-        assert_eq!(Ok(formula), from_string(formula_str));
+        assert_eq!(Ok(formula), from_string(formula_str.to_string()));
     }
 
     #[test]
@@ -173,7 +173,7 @@ mod tests {
                            1 -6 0\n\
                            1 7 0";
 
-        assert!(from_string(formula_str).is_err());
+        assert!(from_string(formula_str.to_string()).is_err());
     }
 
     #[test]
@@ -189,6 +189,6 @@ mod tests {
                            1 -6 0\n\
                            1 7 0";
 
-        assert!(from_string(formula_str).is_err());
+        assert!(from_string(formula_str.to_string()).is_err());
     }
 }
