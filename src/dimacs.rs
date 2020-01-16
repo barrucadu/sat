@@ -14,49 +14,24 @@ pub fn from_string(dimacs: &str) -> Result<Formula, ParseError> {
     for line in dimacs.lines() {
         let mut words = line.split_ascii_whitespace();
         if in_prelude {
-            let prefix = words.next();
-            if let Some("c") = prefix {
-                continue;
-            } else if let Some("p") = prefix {
-                match words.next() {
-                    Some("cnf") => {
-                        if let Some(num_vars) = words.next() {
-                            match num_vars.parse::<usize>() {
-                                Ok(num_vars_num) => {
-                                    expected_number_of_variables = num_vars_num;
-                                    if let Some(num_clauses) = words.next() {
-                                        match num_clauses.parse::<usize>() {
-                                            Ok(num_clauses_num) => {
-                                                expected_number_of_clauses = num_clauses_num;
-                                                in_prelude = false;
-                                            }
-                                            Err(_) => {
-                                                return Err(ParseError::CannotParsePreludeLine(
-                                                    line.to_string(),
-                                                ))
-                                            }
-                                        }
-                                    } else {
-                                        return Err(ParseError::CannotParsePreludeLine(
-                                            line.to_string(),
-                                        ));
-                                    }
-                                }
-                                Err(_) => {
-                                    return Err(ParseError::CannotParsePreludeLine(
-                                        line.to_string(),
-                                    ))
-                                }
+            match words.next() {
+                Some("c") => continue,
+                Some("p") => match words.next() {
+                    Some("cnf") => match words.next().map(|w| w.parse::<usize>()) {
+                        Some(Ok(num_vars)) => match words.next().map(|n| n.parse::<usize>()) {
+                            Some(Ok(num_clauses)) => {
+                                expected_number_of_variables = num_vars;
+                                expected_number_of_clauses = num_clauses;
+                                in_prelude = false;
                             }
-                        } else {
-                            return Err(ParseError::CannotParsePreludeLine(line.to_string()));
-                        }
-                    }
+                            _ => return Err(ParseError::CannotParsePreludeLine(line.to_string())),
+                        },
+                        _ => return Err(ParseError::CannotParsePreludeLine(line.to_string())),
+                    },
                     Some(fmt) => return Err(ParseError::UnexpectedFormat(fmt.to_string())),
                     None => return Err(ParseError::CannotParsePreludeLine(line.to_string())),
-                }
-            } else {
-                return Err(ParseError::CannotParsePreludeLine(line.to_string()));
+                },
+                _ => return Err(ParseError::CannotParsePreludeLine(line.to_string())),
             }
         } else {
             while let Some(lit) = words.next() {
