@@ -13,7 +13,7 @@ pub fn from_string(dimacs: &str) -> Result<Formula, ParseError> {
     let mut clauses = Vec::new();
     let mut variables = 0;
 
-    for line in dimacs.lines() {
+    'outer: for line in dimacs.lines() {
         let mut words = line.split_ascii_whitespace();
         if in_prelude {
             match words.next() {
@@ -40,6 +40,9 @@ pub fn from_string(dimacs: &str) -> Result<Formula, ParseError> {
                 match lit.parse::<isize>() {
                     Ok(0) => {
                         clauses.push(Clause::new(clause));
+                        if clauses.len() == expected_number_of_clauses {
+                            break 'outer;
+                        }
                         clause = Vec::new();
                     }
                     Ok(n) => {
