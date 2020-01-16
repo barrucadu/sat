@@ -5,7 +5,7 @@ use std::fmt;
 use crate::cnf::*;
 
 /// Parse a string in DIMACS CNF format.
-pub fn from_string(dimacs: &str) -> Result<Formula, ParseError> {
+pub fn from_string(dimacs: String) -> Result<Formula, ParseError> {
     let mut in_prelude = true;
     let mut expected_number_of_variables = 0;
     let mut expected_number_of_clauses = 0;

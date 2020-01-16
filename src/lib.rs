@@ -8,8 +8,6 @@ pub mod dpll;
 use crate::cnf::{Formula, Literal};
 use crate::dpll::dpll;
 
-pub const HELLO_WORLD: &str = "Hello, world!";
-
 pub fn sat(formula: Formula) -> bool {
     dpll(formula).is_some()
 }
