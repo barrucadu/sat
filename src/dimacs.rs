@@ -6,6 +6,13 @@ use crate::cnf::*;
 
 /// Parse a string in DIMACS CNF format.
 pub fn from_string(dimacs: String) -> Result<Formula, ParseError> {
+    from_lines(dimacs.lines())
+}
+
+pub fn from_lines<'a, I>(lines: I) -> Result<Formula, ParseError>
+where
+    I: IntoIterator<Item = &'a str>,
+{
     let mut in_prelude = true;
     let mut expected_number_of_variables = 0;
     let mut expected_number_of_clauses = 0;
@@ -13,7 +20,7 @@ pub fn from_string(dimacs: String) -> Result<Formula, ParseError> {
     let mut clauses = Vec::new();
     let mut variables = 0;
 
-    'outer: for line in dimacs.lines() {
+    'outer: for line in lines {
         let mut words = line.split_ascii_whitespace();
         if in_prelude {
             match words.next() {
