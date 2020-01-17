@@ -7,7 +7,6 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
 use crate::cnf::Literal;
-use crate::dpll::Model;
 use crate::smt::Theory;
 
 /// An EUF term is either an atom (represented as numbers) or a
@@ -58,6 +57,8 @@ impl EUFLiteral {
 pub struct EUF {
     lits: Vec<EUFLiteral>,
     superterms: BTreeMap<EUFTerm, BTreeSet<EUFTerm>>,
+    equivs: BTreeMap<EUFTerm, BTreeSet<EUFTerm>>,
+    inequivs: BTreeSet<(EUFTerm, EUFTerm)>,
 }
 
 impl EUF {
@@ -69,6 +70,8 @@ impl EUF {
         EUF {
             lits: lits,
             superterms: superterms,
+            equivs: BTreeMap::new(),
+            inequivs: BTreeSet::new(),
         }
     }
 
@@ -87,37 +90,17 @@ impl EUF {
 }
 
 impl Theory for EUF {
-    fn decide(&self, model: &Model, model_lit: &Literal) -> Option<bool> {
+    fn decide(&self, model_lit: &Literal) -> Option<bool> {
         let euf_lit = self.to_euf_lit(model_lit);
 
         if euf_lit.left == euf_lit.right {
             return Some(euf_lit.is_equality);
         }
 
-        // todo: make this whole thing incremental
-        let mut equivs: BTreeMap<EUFTerm, BTreeSet<EUFTerm>> = BTreeMap::new();
-        let mut inequivs: BTreeSet<(EUFTerm, EUFTerm)> = BTreeSet::new();
-        for l in model.get_assignments() {
-            let el = self.to_euf_lit(&l);
-            if el.is_equality {
-                if el.left == el.right {
-                    continue;
-                }
-                add_equiv(&mut equivs, &self.superterms, &el.left, &el.right)
-            } else {
-                if el.left == el.right {
-                    panic!("contradiction: {:?} is not equal to itself", el.left);
-                }
-                inequivs.insert((el.left.clone(), el.right.clone()));
-            }
-        }
-
-        infer_implicit_equalities(&mut equivs, &self.superterms);
-
         match (
             euf_lit.is_equality,
-            are_equal(&equivs, &euf_lit.left, &euf_lit.right),
-            are_unequal(&equivs, &inequivs, &euf_lit.left, &euf_lit.right),
+            are_equal(&self.equivs, &euf_lit.left, &euf_lit.right),
+            are_unequal(&self.equivs, &self.inequivs, &euf_lit.left, &euf_lit.right),
         ) {
             (true, true, false) => Some(true),
             (true, false, true) => Some(false),
@@ -129,6 +112,28 @@ impl Theory for EUF {
             ),
             (_, false, false) => None,
         }
+    }
+
+    fn incorporate(&mut self, model_lit: &Literal) {
+        let el = self.to_euf_lit(model_lit);
+        if el.is_equality {
+            if el.left == el.right {
+                return;
+            }
+            add_equiv(&mut self.equivs, &self.superterms, &el.left, &el.right)
+        } else {
+            if el.left == el.right {
+                panic!("contradiction: {:?} is not equal to itself", el.left);
+            }
+            self.inequivs.insert((el.left.clone(), el.right.clone()));
+        }
+
+        infer_implicit_equalities(&mut self.equivs, &self.superterms);
+    }
+
+    fn forget(&mut self) {
+        self.equivs = BTreeMap::new();
+        self.inequivs = BTreeSet::new();
     }
 }
 

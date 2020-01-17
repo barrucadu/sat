@@ -127,7 +127,7 @@ fn do_backjump(model: &mut Model) -> bool {
     false
 }
 
-fn do_unit_propagation(model: &mut Model, formula: &Formula) -> bool {
+fn do_unit_propagation(model: &mut Model, formula: &Formula) -> Option<Literal> {
     let Formula(clauses) = formula;
 
     for clause in clauses {
@@ -140,32 +140,33 @@ fn do_unit_propagation(model: &mut Model, formula: &Formula) -> bool {
                         lits.into_iter().filter(|l| *l != lit).map(|l| *l).collect();
 
                     if Clause(lits_without_lit).is_true_in(model) == Some(false) {
-                        model.append(*lit, Provenance::UnitPropagation);
-                        return true;
+                        return Some(*lit);
                     }
                 }
             }
         }
     }
 
-    false
+    None
 }
 
-fn do_theory_propagation<T: Theory>(theory: &T, model: &mut Model, formula: &Formula) -> bool {
+fn do_theory_propagation<T: Theory>(
+    theory: &T,
+    model: &mut Model,
+    formula: &Formula,
+) -> Option<Literal> {
     let Formula(clauses) = formula;
 
     for clause in clauses {
         let Clause(lits) = clause;
         for lit in lits {
             if lit.is_true_in(model) == None {
-                match theory.decide(model, lit) {
+                match theory.decide(lit) {
                     Some(true) => {
-                        model.append(*lit, Provenance::TheoryPropagation);
-                        return true;
+                        return Some(*lit);
                     }
                     Some(false) => {
-                        model.append(lit.negate(), Provenance::TheoryPropagation);
-                        return true;
+                        return Some(lit.negate());
                     }
                     None => continue,
                 }
@@ -173,10 +174,10 @@ fn do_theory_propagation<T: Theory>(theory: &T, model: &mut Model, formula: &For
         }
     }
 
-    false
+    None
 }
 
-fn do_decision(model: &mut Model, formula: &Formula) -> bool {
+fn do_decision(model: &mut Model, formula: &Formula) -> Option<Literal> {
     let Formula(clauses) = formula;
 
     for clause in clauses {
@@ -186,18 +187,27 @@ fn do_decision(model: &mut Model, formula: &Formula) -> bool {
             for lit in lits {
                 if lit.is_true_in(model) == None {
                     // make the lit positive
-                    model.append(Literal::new(lit.get_id()), Provenance::Decision);
-                    return true;
+                    return Some(Literal::new(lit.get_id()));
                 }
             }
         }
     }
 
-    false
+    None
+}
+
+fn reset_theory<T: Theory>(theory: &mut T, model: &Model) {
+    let Model(lits) = model;
+
+    theory.forget();
+
+    for (lit, _) in lits.into_iter() {
+        theory.incorporate(&lit);
+    }
 }
 
 /// Given a formula, find a model which satisfies it if one exists.
-pub fn dpll<T: Theory>(theory: T, formula: Formula) -> Option<Model> {
+pub fn dpll<T: Theory>(theory: &mut T, formula: Formula) -> Option<Model> {
     let mut model = Model::new();
 
     loop {
@@ -205,6 +215,7 @@ pub fn dpll<T: Theory>(theory: T, formula: Formula) -> Option<Model> {
             Some(true) => break,
             Some(false) => {
                 if do_backjump(&mut model) {
+                    reset_theory(theory, &model);
                     continue;
                 }
 
@@ -214,13 +225,19 @@ pub fn dpll<T: Theory>(theory: T, formula: Formula) -> Option<Model> {
                 // need to eagerly apply constraints required by the
                 // theory, or unit propagation might pick a literal
                 // which the theory would forbid.
-                if do_theory_propagation(&theory, &mut model, &formula) {
+                if let Some(lit) = do_theory_propagation(theory, &mut model, &formula) {
+                    model.append(lit, Provenance::TheoryPropagation);
+                    theory.incorporate(&lit);
                     continue;
                 }
-                if do_unit_propagation(&mut model, &formula) {
+                if let Some(lit) = do_unit_propagation(&mut model, &formula) {
+                    model.append(lit, Provenance::UnitPropagation);
+                    theory.incorporate(&lit);
                     continue;
                 }
-                if do_decision(&mut model, &formula) {
+                if let Some(lit) = do_decision(&mut model, &formula) {
+                    model.append(lit, Provenance::Decision);
+                    theory.incorporate(&lit);
                     continue;
                 }
 

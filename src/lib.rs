@@ -12,18 +12,18 @@ use crate::smt::empty::EmptyTheory;
 use crate::smt::Theory;
 
 pub fn sat(formula: Formula) -> bool {
-    smt(EmptyTheory::new(), formula)
+    smt(&mut EmptyTheory::new(), formula)
 }
 
 pub fn sat_assignment(formula: Formula) -> Option<Vec<Literal>> {
-    smt_assignment(EmptyTheory::new(), formula)
+    smt_assignment(&mut EmptyTheory::new(), formula)
 }
 
-pub fn smt<T: Theory>(theory: T, formula: Formula) -> bool {
+pub fn smt<T: Theory>(theory: &mut T, formula: Formula) -> bool {
     dpll(theory, formula).is_some()
 }
 
-pub fn smt_assignment<T: Theory>(theory: T, formula: Formula) -> Option<Vec<Literal>> {
+pub fn smt_assignment<T: Theory>(theory: &mut T, formula: Formula) -> Option<Vec<Literal>> {
     dpll(theory, formula).map(|model| model.get_assignments())
 }
 
@@ -98,7 +98,7 @@ mod tests {
             Clause::new(vec![3]),
             Clause::new(vec![-4]),
         ]);
-        let euf = EUF::new(vec![
+        let mut euf = EUF::new(vec![
             EUFLiteral::new(
                 EUFTerm::ap(1, vec![EUFTerm::atom(1), EUFTerm::atom(2)]),
                 EUFTerm::atom(1),
@@ -121,7 +121,7 @@ mod tests {
         ]);
 
         assert!(sat(formula.clone()));
-        assert!(!smt(euf, formula));
+        assert!(!smt(&mut euf, formula));
     }
 
     #[test]
@@ -132,7 +132,7 @@ mod tests {
             Clause::new(vec![3]),
             Clause::new(vec![-4]),
         ]);
-        let euf = EUF::new(vec![
+        let mut euf = EUF::new(vec![
             EUFLiteral::new(
                 EUFTerm::ap(1, vec![EUFTerm::atom(1), EUFTerm::atom(2)]),
                 EUFTerm::atom(1),
@@ -158,7 +158,7 @@ mod tests {
         ]);
 
         assert!(sat(formula.clone()));
-        assert!(!smt(euf, formula));
+        assert!(!smt(&mut euf, formula));
     }
 
     #[test]
@@ -169,7 +169,7 @@ mod tests {
             Clause::new(vec![3]),
             Clause::new(vec![-4, 4]),
         ]);
-        let euf = EUF::new(vec![
+        let mut euf = EUF::new(vec![
             EUFLiteral::new(
                 EUFTerm::ap(1, vec![EUFTerm::atom(1), EUFTerm::atom(2)]),
                 EUFTerm::atom(1),
@@ -195,6 +195,6 @@ mod tests {
         ]);
 
         assert!(sat(formula.clone()));
-        assert!(smt(euf, formula));
+        assert!(smt(&mut euf, formula));
     }
 }

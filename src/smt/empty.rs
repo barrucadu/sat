@@ -1,7 +1,6 @@
 //! The empty theory.  Instantiate this to get a SAT solver.
 
 use crate::cnf::Literal;
-use crate::dpll::Model;
 use crate::smt::Theory;
 
 /// The empty theory has no state.
@@ -14,7 +13,11 @@ impl EmptyTheory {
 }
 
 impl Theory for EmptyTheory {
-    fn decide(&self, _model: &Model, _lit: &Literal) -> Option<bool> {
+    fn decide(&self, _lit: &Literal) -> Option<bool> {
         None
     }
+
+    fn incorporate(&mut self, _lit: &Literal) {}
+
+    fn forget(&mut self) {}
 }
