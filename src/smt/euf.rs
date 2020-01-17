@@ -29,8 +29,8 @@ impl EUFTerm {
     /// Construct an EUF application term
     pub fn ap(function_atom: usize, parameters: Vec<EUFTerm>) -> EUFTerm {
         EUFTerm::Application {
-            function_atom: function_atom,
-            parameters: parameters,
+            function_atom,
+            parameters,
         }
     }
 }
@@ -48,8 +48,8 @@ impl EUFLiteral {
     pub fn new(left: EUFTerm, right: EUFTerm) -> EUFLiteral {
         EUFLiteral {
             is_equality: true,
-            left: left,
-            right: right,
+            left,
+            right,
         }
     }
 }
@@ -68,14 +68,14 @@ impl EUF {
     pub fn new(lits: Vec<EUFLiteral>) -> EUF {
         let superterms = compute_superterms(&lits);
         EUF {
-            lits: lits,
-            superterms: superterms,
+            lits,
+            superterms,
             equivs: BTreeMap::new(),
             inequivs: BTreeSet::new(),
         }
     }
 
-    fn to_euf_lit(&self, model_lit: &Literal) -> EUFLiteral {
+    fn to_euf_lit(&self, model_lit: Literal) -> EUFLiteral {
         let euf_lit = self.lits[(model_lit.get_id() as usize) - 1].clone();
         if model_lit.is_negated() {
             EUFLiteral {
@@ -90,7 +90,7 @@ impl EUF {
 }
 
 impl Theory for EUF {
-    fn decide(&self, model_lit: &Literal) -> Option<bool> {
+    fn decide(&self, model_lit: Literal) -> Option<bool> {
         let euf_lit = self.to_euf_lit(model_lit);
 
         if euf_lit.left == euf_lit.right {
@@ -114,7 +114,7 @@ impl Theory for EUF {
         }
     }
 
-    fn incorporate(&mut self, model_lit: &Literal) {
+    fn incorporate(&mut self, model_lit: Literal) {
         let el = self.to_euf_lit(model_lit);
         if el.is_equality {
             if el.left == el.right {
@@ -138,16 +138,12 @@ impl Theory for EUF {
 }
 
 /// Given a set of literals, compute the superterm relation.
-fn compute_superterms(lits: &Vec<EUFLiteral>) -> BTreeMap<EUFTerm, BTreeSet<EUFTerm>> {
+fn compute_superterms(lits: &[EUFLiteral]) -> BTreeMap<EUFTerm, BTreeSet<EUFTerm>> {
     fn go(superterms: &mut BTreeMap<EUFTerm, BTreeSet<EUFTerm>>, term: &EUFTerm) {
         superterms.entry(term.clone()).or_default();
 
-        if let EUFTerm::Application {
-            function_atom: _,
-            parameters: ps,
-        } = term
-        {
-            for p in ps {
+        if let EUFTerm::Application { parameters, .. } = term {
+            for p in parameters {
                 superterms
                     .entry(p.clone())
                     .or_default()
@@ -172,13 +168,14 @@ fn add_equiv(
     left: &EUFTerm,
     right: &EUFTerm,
 ) {
+    #[allow(clippy::too_many_arguments)]
     fn go(
         rel: &mut BTreeMap<EUFTerm, BTreeSet<EUFTerm>>,
         superterms: &BTreeMap<EUFTerm, BTreeSet<EUFTerm>>,
         term: &EUFTerm,
         equiv: &EUFTerm,
         function_atom: usize,
-        parameters: &Vec<EUFTerm>,
+        parameters: &[EUFTerm],
         prefix: Vec<EUFTerm>,
         i: usize,
         changed: bool,
@@ -186,7 +183,7 @@ fn add_equiv(
         if i == parameters.len() {
             if changed {
                 let new_term = EUFTerm::Application {
-                    function_atom: function_atom,
+                    function_atom,
                     parameters: prefix,
                 };
                 // only add equivalences for terms which exist in the
@@ -198,8 +195,8 @@ fn add_equiv(
                     rel,
                     superterms,
                     &EUFTerm::Application {
-                        function_atom: function_atom,
-                        parameters: parameters.clone(),
+                        function_atom,
+                        parameters: parameters.to_vec(),
                     },
                     &new_term,
                 );
@@ -241,7 +238,7 @@ fn add_equiv(
     rel.entry(right.clone()).or_default().insert(left.clone());
 
     let empty_set = BTreeSet::new();
-    for superterm in superterms.get(left).unwrap_or(&empty_set).into_iter() {
+    for superterm in superterms.get(left).unwrap_or(&empty_set).iter() {
         match superterm {
             EUFTerm::Application {
                 function_atom,
@@ -260,7 +257,7 @@ fn add_equiv(
             _ => continue,
         }
     }
-    for superterm in superterms.get(right).unwrap_or(&empty_set).into_iter() {
+    for superterm in superterms.get(right).unwrap_or(&empty_set).iter() {
         match superterm {
             EUFTerm::Application {
                 function_atom,
@@ -309,7 +306,7 @@ fn infer_implicit_equalities(
                                 function_atom: bf,
                                 parameters: bps,
                             } if af == bf && aps.len() == bps.len() && !are_equal(rel, a, b) => {
-                                for (ap, bp) in aps.into_iter().zip(bps.into_iter()) {
+                                for (ap, bp) in aps.iter().zip(bps.iter()) {
                                     if !are_equal(rel, ap, bp) {
                                         continue 'fn_b;
                                     }
@@ -325,7 +322,7 @@ fn infer_implicit_equalities(
             }
         }
 
-        if new_equivalences.len() == 0 {
+        if new_equivalences.is_empty() {
             break;
         }
 

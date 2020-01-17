@@ -4,6 +4,7 @@ use crate::cnf::Literal;
 use crate::smt::Theory;
 
 /// The empty theory has no state.
+#[derive(Default)]
 pub struct EmptyTheory();
 
 impl EmptyTheory {
@@ -13,11 +14,11 @@ impl EmptyTheory {
 }
 
 impl Theory for EmptyTheory {
-    fn decide(&self, _lit: &Literal) -> Option<bool> {
+    fn decide(&self, _lit: Literal) -> Option<bool> {
         None
     }
 
-    fn incorporate(&mut self, _lit: &Literal) {}
+    fn incorporate(&mut self, _lit: Literal) {}
 
     fn forget(&mut self) {}
 }

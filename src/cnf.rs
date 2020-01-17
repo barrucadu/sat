@@ -17,19 +17,19 @@ impl Literal {
     }
 
     /// Check if a literal is negated.
-    pub fn is_negated(&self) -> bool {
-        let Literal(atom) = *self;
+    pub fn is_negated(self) -> bool {
+        let Literal(atom) = self;
         atom < 0
     }
 
     /// Negate a literal, with double negation cancelling out.
-    pub fn negate(&self) -> Literal {
+    pub fn negate(self) -> Literal {
         let Literal(atom) = self;
-        Literal(atom * -1)
+        Literal(-atom)
     }
 
     /// Get the numeric ID of a literal.
-    pub fn get_id(&self) -> isize {
+    pub fn get_id(self) -> isize {
         let Literal(atom) = self;
         atom.abs()
     }
@@ -49,7 +49,7 @@ pub struct Clause(pub Vec<Literal>);
 impl Clause {
     /// Construct a new clause from numeric literals.
     pub fn new(lits: Vec<isize>) -> Clause {
-        Clause(lits.into_iter().map(|i| Literal::new(i)).collect())
+        Clause(lits.into_iter().map(Literal::new).collect())
     }
 
     /// Add a literal to a clause.  Two literals corresponding to the

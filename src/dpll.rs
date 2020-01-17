@@ -8,10 +8,10 @@ impl Literal {
     /// A literal is true in a model if it's a member of the set.
     /// This will return 'None' if the model doesn't have an
     /// assignment of truth for the literal or its negation.
-    pub fn is_true_in(&self, model: &Model) -> Option<bool> {
+    pub fn is_true_in(self, model: &Model) -> Option<bool> {
         if model.contains(self) {
             Some(true)
-        } else if model.contains(&self.negate()) {
+        } else if model.contains(self.negate()) {
             Some(false)
         } else {
             None
@@ -91,11 +91,11 @@ impl Model {
     }
 
     /// Check if the model contains a literal.
-    fn contains(&self, lit: &Literal) -> bool {
+    fn contains(&self, lit: Literal) -> bool {
         let Model(lits) = self;
 
         for (l, _) in lits {
-            if l == lit {
+            if *l == lit {
                 return true;
             }
         }
@@ -107,7 +107,7 @@ impl Model {
     /// provenance information.
     pub fn get_assignments(&self) -> Vec<Literal> {
         let Model(lits) = self;
-        lits.into_iter().map(|(l, _)| *l).collect()
+        lits.iter().map(|(l, _)| *l).collect()
     }
 }
 
@@ -136,8 +136,7 @@ fn do_unit_propagation(model: &mut Model, formula: &Formula) -> Option<Literal> 
 
             for lit in lits {
                 if lit.is_true_in(model) == None {
-                    let lits_without_lit =
-                        lits.into_iter().filter(|l| *l != lit).map(|l| *l).collect();
+                    let lits_without_lit = lits.iter().filter(|l| *l != lit).copied().collect();
 
                     if Clause(lits_without_lit).is_true_in(model) == Some(false) {
                         return Some(*lit);
@@ -161,7 +160,7 @@ fn do_theory_propagation<T: Theory>(
         let Clause(lits) = clause;
         for lit in lits {
             if lit.is_true_in(model) == None {
-                match theory.decide(lit) {
+                match theory.decide(*lit) {
                     Some(true) => {
                         return Some(*lit);
                     }
@@ -201,8 +200,8 @@ fn reset_theory<T: Theory>(theory: &mut T, model: &Model) {
 
     theory.forget();
 
-    for (lit, _) in lits.into_iter() {
-        theory.incorporate(&lit);
+    for (lit, _) in lits.iter() {
+        theory.incorporate(*lit);
     }
 }
 
@@ -227,17 +226,17 @@ pub fn dpll<T: Theory>(theory: &mut T, formula: Formula) -> Option<Model> {
                 // which the theory would forbid.
                 if let Some(lit) = do_theory_propagation(theory, &mut model, &formula) {
                     model.append(lit, Provenance::TheoryPropagation);
-                    theory.incorporate(&lit);
+                    theory.incorporate(lit);
                     continue;
                 }
                 if let Some(lit) = do_unit_propagation(&mut model, &formula) {
                     model.append(lit, Provenance::UnitPropagation);
-                    theory.incorporate(&lit);
+                    theory.incorporate(lit);
                     continue;
                 }
                 if let Some(lit) = do_decision(&mut model, &formula) {
                     model.append(lit, Provenance::Decision);
-                    theory.incorporate(&lit);
+                    theory.incorporate(lit);
                     continue;
                 }
 

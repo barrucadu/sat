@@ -36,7 +36,7 @@ pub fn from_string(dimacs: String) -> Result<Formula, ParseError> {
                 _ => return Err(ParseError::CannotParsePreludeLine(line.to_string())),
             }
         } else {
-            while let Some(lit) = words.next() {
+            for lit in words {
                 match lit.parse::<isize>() {
                     Ok(0) => {
                         clauses.push(Clause::new(clause));
