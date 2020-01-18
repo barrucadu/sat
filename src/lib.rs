@@ -4,12 +4,12 @@
 pub mod cnf;
 pub mod dimacs;
 pub mod dpll;
-pub mod smt;
+pub mod theory;
 
 use crate::cnf::{Formula, Literal};
 use crate::dpll::dpll;
-use crate::smt::empty::EmptyTheory;
-use crate::smt::Theory;
+use crate::theory::empty::EmptyTheory;
+use crate::theory::Theory;
 
 pub fn sat(formula: Formula) -> bool {
     smt(&mut EmptyTheory::new(), formula)
@@ -31,7 +31,7 @@ pub fn smt_assignment<T: Theory>(theory: &mut T, formula: Formula) -> Option<Vec
 mod tests {
     use super::*;
     use crate::cnf::*;
-    use crate::smt::euf::*;
+    use crate::theory::euf::*;
 
     #[test]
     fn simple_sat_1() {

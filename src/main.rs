@@ -1,9 +1,9 @@
 extern crate sat;
 
 use sat::cnf::*;
-use sat::smt::empty::EmptyTheory;
-use sat::smt::euf::EUF;
-use sat::smt::Theory;
+use sat::theory::empty::EmptyTheory;
+use sat::theory::euf::EUF;
+use sat::theory::Theory;
 
 use std::env;
 use std::fmt::Display;

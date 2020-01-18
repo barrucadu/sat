@@ -2,7 +2,7 @@
 //! DPLL Modulo Theories"
 
 use crate::cnf::*;
-use crate::smt::Theory;
+use crate::theory::Theory;
 
 impl Literal {
     /// A literal is true in a model if it's a member of the set.

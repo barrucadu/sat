@@ -10,7 +10,7 @@ use std::iter::Peekable;
 
 use crate::cnf::{Formula, Literal};
 use crate::dimacs;
-use crate::smt::Theory;
+use crate::theory::Theory;
 
 /// An EUF term is either an atom (represented as numbers) or a
 /// function applied to an EUF term.

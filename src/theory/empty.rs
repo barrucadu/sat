@@ -2,7 +2,7 @@
 
 use crate::cnf::{Formula, Literal};
 use crate::dimacs;
-use crate::smt::Theory;
+use crate::theory::Theory;
 
 /// The empty theory has no state.
 #[derive(Default)]
