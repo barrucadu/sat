@@ -8,15 +8,15 @@ pub mod theory;
 
 use crate::cnf::{Formula, Literal};
 use crate::dpll::dpll;
-use crate::theory::empty::EmptyTheory;
+use crate::theory::empty::Empty;
 use crate::theory::Theory;
 
 pub fn sat(formula: Formula) -> bool {
-    smt(&mut EmptyTheory::new(), formula)
+    smt(&mut Empty::new(), formula)
 }
 
 pub fn sat_assignment(formula: Formula) -> Option<Vec<Literal>> {
-    smt_assignment(&mut EmptyTheory::new(), formula)
+    smt_assignment(&mut Empty::new(), formula)
 }
 
 pub fn smt<T: Theory>(theory: &mut T, formula: Formula) -> bool {

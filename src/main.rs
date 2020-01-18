@@ -1,7 +1,7 @@
 extern crate sat;
 
 use sat::cnf::*;
-use sat::theory::empty::EmptyTheory;
+use sat::theory::empty::Empty;
 use sat::theory::euf::EUF;
 use sat::theory::Theory;
 
@@ -19,7 +19,7 @@ fn main() {
     let theory_name = env::args().nth(1).unwrap_or(default_theory);
 
     if theory_name == "sat" {
-        let (mut theory, formula) = parse_from_stdin(EmptyTheory::from_string);
+        let (mut theory, formula) = parse_from_stdin(Empty::from_string);
         smt_main(&mut theory, formula);
     } else if theory_name == "euf" {
         let (mut theory, formula) = parse_from_stdin(EUF::from_string);

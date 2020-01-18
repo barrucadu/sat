@@ -6,19 +6,19 @@ use crate::theory::Theory;
 
 /// The empty theory has no state.
 #[derive(Default)]
-pub struct EmptyTheory();
+pub struct Empty();
 
-impl EmptyTheory {
-    pub fn new() -> EmptyTheory {
-        EmptyTheory {}
+impl Empty {
+    pub fn new() -> Empty {
+        Empty {}
     }
 
-    pub fn from_string(input: String) -> Result<(EmptyTheory, Formula), dimacs::ParseError> {
-        dimacs::from_string(input).map(|formula| (EmptyTheory::new(), formula))
+    pub fn from_string(input: String) -> Result<(Empty, Formula), dimacs::ParseError> {
+        dimacs::from_string(input).map(|formula| (Empty::new(), formula))
     }
 }
 
-impl Theory for EmptyTheory {
+impl Theory for Empty {
     fn decide(&self, _lit: Literal) -> Option<bool> {
         None
     }
