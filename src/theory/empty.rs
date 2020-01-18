@@ -1,7 +1,6 @@
 //! The empty theory.  Instantiate this to get a SAT solver.
 
-use crate::cnf::{Formula, Literal};
-use crate::dimacs;
+use crate::cnf::Literal;
 use crate::theory::Theory;
 
 /// The empty theory has no state.
@@ -11,10 +10,6 @@ pub struct Empty();
 impl Empty {
     pub fn new() -> Empty {
         Empty {}
-    }
-
-    pub fn from_string(input: String) -> Result<(Empty, Formula), dimacs::ParseError> {
-        dimacs::from_string(input).map(|formula| (Empty::new(), formula))
     }
 }
 
