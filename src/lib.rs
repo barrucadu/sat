@@ -1,6 +1,22 @@
 //! A basic SAT solver based on the paper "Abstract DPLL and Abstract
 //! DPLL Modulo Theories"
 
+#![warn(
+    absolute_paths_not_starting_with_crate,
+    deprecated_in_future,
+    keyword_idents,
+    missing_copy_implementations,
+    missing_debug_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unreachable_pub,
+    unused_extern_crates,
+    unused_import_braces,
+    unused_labels,
+    unused_lifetimes,
+    unused_qualifications
+)]
+
 pub mod cnf;
 pub mod dpll;
 pub mod parse;

@@ -64,6 +64,7 @@ impl EUFLiteral {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub struct EUF {
     lits: Vec<EUFLiteral>,
     superterms: BTreeMap<EUFTerm, BTreeSet<EUFTerm>>,

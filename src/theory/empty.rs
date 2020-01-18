@@ -4,7 +4,7 @@ use crate::cnf::Literal;
 use crate::theory::Theory;
 
 /// The empty theory has no state.
-#[derive(Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Empty();
 
 impl Empty {
