@@ -1,6 +1,8 @@
 //! A basic SAT solver based on the paper "Abstract DPLL and Abstract
 //! DPLL Modulo Theories"
 
+use std::collections::BTreeSet;
+
 use crate::cnf::*;
 use crate::theory::Theory;
 
@@ -206,8 +208,9 @@ fn reset_theory<T: Theory>(theory: &mut T, model: &Model) {
 }
 
 /// Given a formula, find a model which satisfies it if one exists.
-pub fn dpll<T: Theory>(theory: &mut T, formula: Formula) -> Option<Model> {
+pub fn dpll<T: Theory>(theory: &mut T, formula0: Formula) -> Option<Model> {
     let mut model = Model::new();
+    let formula = simplify_formula(formula0);
 
     loop {
         match formula.is_true_in(&model) {
@@ -246,4 +249,73 @@ pub fn dpll<T: Theory>(theory: &mut T, formula: Formula) -> Option<Model> {
     }
 
     Some(model)
+}
+
+// "Clause Elimination Procedures for CNF Formulas" - Heule, Jarvisalo, Biere (2010)
+
+fn simplify_formula(formula: Formula) -> Formula {
+    // maybe one day there will be more than just one
+    asymmetric_tautology_elimination(formula)
+}
+
+/// Asymmetric Tautology Elimination (4.2)
+///
+/// For a clause C and a CNF formula F, ALA(F,C) denotes the unique
+/// clause resulting from repeating the following until fixpoint:
+/// if l1, ..., lk \in C and there is a clause (l1 || ... || lk ||
+/// l) \in F \ {C} for some literal l, let C := C + {!l}.
+///
+/// A clause C is called an asymmetric tautology if and only if
+/// ALA(F,C) is a tautology.
+///
+/// Given a formula F, asymmetric tautology elimination (ATE)
+/// repeats the following until fixpoint: if there is an asymmetric
+/// tautological clause C \in F, let F := F \ {C}
+fn asymmetric_tautology_elimination(formula: Formula) -> Formula {
+    let Formula(clauses) = formula;
+    let mut deleted_clauses: Vec<bool> = clauses.iter().map(|_| false).collect();
+
+    for i in 0..clauses.len() {
+        let Clause(lits) = &clauses[i];
+        let mut ate_lits = lits.clone();
+        'ala: loop {
+            let ate_lits_set: BTreeSet<Literal> = ate_lits.iter().copied().collect();
+            for j in 0..clauses.len() {
+                if i == j {
+                    continue;
+                }
+                if deleted_clauses[j] {
+                    continue;
+                }
+                let Clause(elits) = &clauses[j];
+                for el in elits {
+                    if ate_lits_set.contains(&el.negate()) {
+                        continue;
+                    }
+                    let mut els_without_el: BTreeSet<Literal> = elits.iter().copied().collect();
+                    els_without_el.remove(el);
+                    if els_without_el.is_subset(&ate_lits_set) {
+                        if ate_lits_set.contains(&el) {
+                            deleted_clauses[i] = true;
+                            break 'ala;
+                        } else {
+                            ate_lits.push(el.negate());
+                            continue 'ala;
+                        }
+                    }
+                }
+            }
+            break 'ala;
+        }
+    }
+
+    Formula(
+        clauses
+            .iter()
+            .zip(deleted_clauses.iter())
+            .filter(|(_, deleted)| !**deleted)
+            .map(|(clause, _)| clause)
+            .cloned()
+            .collect(),
+    )
 }
